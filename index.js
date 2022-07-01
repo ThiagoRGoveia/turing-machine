@@ -1,4 +1,5 @@
 // Funções para processamento de input
+let listeners;
 function getString(data) {
     return data.toString().replace(/(\r\n|\n|\r)/gm, "");
 }
@@ -13,6 +14,23 @@ function unregisterInputListener(listener) {
 
 function stopInput() {
     process.stdin.pause();
+}
+
+function startListenerChain() {
+    const listener = listeners.splice(0, 1)[0]; // Remove primeiro elemento e retorna
+    if (!listener) {
+        stopInput();
+    }
+    const caller = (data) =>
+        listener(data, () => {
+            process.stdin.off("data", caller);
+            startListenerChain();
+        });
+    process.stdin.on("data", caller);
+}
+
+function registerListeners(...listenersToRegister) {
+    listeners = [...listenersToRegister];
 }
 
 // Construtor do grafo de estados
@@ -32,12 +50,14 @@ function buildStates(numberOfStates, acceptanceStates, transitions) {
     return states;
 }
 
+// Criar objeto que representa um estado
 function buildStateNode(acceptanceStates, node) {
     return {
         isAcceptance: acceptanceStates.includes(node),
     };
 }
 
+// Adicionar cada transição ao seu respectivo estado de origem
 function buildTransitions(arrayOfTransitions, states) {
     const transitions = {};
     for (const transition of arrayOfTransitions) {
@@ -72,7 +92,7 @@ function traverse(state, strip, head) {
     return state.isAcceptance;
 }
 
-function exec() {
+function buildTuringMachine() {
     let numStates;
     let alphabet;
     let stripAlphabet;
@@ -84,54 +104,44 @@ function exec() {
     const stringsToEvaluate = [];
     let numberOfStringsRead = 0;
 
-    registerInputListener(readNumStates);
-
-    function readNumStates(data) {
+    function readNumStates(data, next) {
         numStates = parseInt(getString(data));
-        unregisterInputListener(readNumStates);
-        registerInputListener(readAlphabetString);
+        next();
     }
-    function readAlphabetString(data) {
+    function readAlphabetString(data, next) {
         alphabet = getString(data).split(" ");
         alphabet.splice(0, 1);
-        unregisterInputListener(readAlphabetString);
-        registerInputListener(readStripAlphabet);
+        next();
     }
-    function readStripAlphabet(data) {
+    function readStripAlphabet(data, next) {
         stripAlphabet = getString(data).split(" ");
         stripAlphabet.splice(0, 1);
-        unregisterInputListener(readStripAlphabet);
-        registerInputListener(readAcceptanceState);
+        next();
     }
-    function readAcceptanceState(data) {
+    function readAcceptanceState(data, next) {
         acceptanceState = getString(data);
-        unregisterInputListener(readAcceptanceState);
-        registerInputListener(readNumberOfTransitions);
+        next();
     }
-    function readNumberOfTransitions(data) {
+    function readNumberOfTransitions(data, next) {
         numberOfTransitions = parseInt(getString(data));
-        unregisterInputListener(readNumberOfTransitions);
-        registerInputListener(readTransition);
+        next();
     }
-    function readTransition(data) {
+    function readTransition(data, next) {
         transitions.push(getString(data).split(" "));
         numberOfTransitionsRead++;
         if (numberOfTransitionsRead === numberOfTransitions) {
-            unregisterInputListener(readTransition);
-            registerInputListener(readStringsToEvaluate);
+            next();
         }
     }
-    function readStringsToEvaluate(data) {
+    function readNumberOfStringsToEvaluate(data, next) {
         numberOfStringsToEvaluate = parseInt(getString(data));
-        unregisterInputListener(readStringsToEvaluate);
-        registerInputListener(readString);
+        next();
     }
-    function readString(data) {
+    function readString(data, next) {
         stringsToEvaluate.push(getString(data));
         numberOfStringsRead++;
         if (numberOfStringsRead === numberOfStringsToEvaluate) {
-            unregisterInputListener(readString);
-            stopInput();
+            next();
             evaluate();
         }
     }
@@ -145,6 +155,19 @@ function exec() {
             console.log(accept);
         }
     }
+
+    registerListeners(
+        readNumStates,
+        readAlphabetString,
+        readStripAlphabet,
+        readAcceptanceState,
+        readNumberOfTransitions,
+        readTransition,
+        readNumberOfStringsToEvaluate,
+        readString
+    );
+
+    startListenerChain();
 }
 
-exec();
+buildTuringMachine();
