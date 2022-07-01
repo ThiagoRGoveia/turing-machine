@@ -1,5 +1,8 @@
 {
     "name": "turing_simulator",
     "main": "index.js",
-    "bin": "index.js"
+    "bin": "index.js",
+    "dependencies": {
+        "split": "^1.0.1"
+    }
 }

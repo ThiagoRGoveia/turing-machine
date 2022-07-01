@@ -1,19 +1,13 @@
+const split = require("split")();
+const stdin = process.stdin.pipe(split);
 // Funções para processamento de input
 let listeners;
 function getString(data) {
     return data.toString().replace(/(\r\n|\n|\r)/gm, "");
 }
 
-function registerInputListener(listener) {
-    process.stdin.on("data", listener);
-}
-
-function unregisterInputListener(listener) {
-    process.stdin.off("data", listener);
-}
-
 function stopInput() {
-    process.stdin.pause();
+    stdin.pause();
 }
 
 function startListenerChain() {
@@ -23,10 +17,10 @@ function startListenerChain() {
     }
     const caller = (data) =>
         listener(data, () => {
-            process.stdin.off("data", caller);
+            stdin.off("data", caller);
             startListenerChain();
         });
-    process.stdin.on("data", caller);
+    stdin.on("data", caller);
 }
 
 function registerListeners(...listenersToRegister) {
