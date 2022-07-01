@@ -1,0 +1,5 @@
+{
+    "name": "turing_simulator",
+    "main": "index.js",
+    "bin": "index.js"
+}
