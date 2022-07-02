@@ -6,10 +6,12 @@ function getString(data) {
     return data.toString().replace(/(\r\n|\n|\r)/gm, "");
 }
 
+// Impede a leitura de entrada
 function stopInput() {
     stdin.pause();
 }
 
+// Inicia a cadeia de listeners para leitura das entradas
 function startListenerChain() {
     const listener = listeners.splice(0, 1)[0]; // Remove primeiro elemento e retorna
     if (!listener) {
@@ -23,6 +25,7 @@ function startListenerChain() {
     stdin.on("data", caller);
 }
 
+// Registra o que foi lido das entradas para uso na lógica da máquina
 function registerListeners(...listenersToRegister) {
     listeners = [...listenersToRegister];
 }
@@ -30,11 +33,11 @@ function registerListeners(...listenersToRegister) {
 // Construtor do grafo de estados
 function buildStates(numberOfStates, acceptanceStates, transitions) {
     const states = [];
-    // adicionar objetos de estado à array
+    // Adicionar objetos de estado à array
     for (i = 0; i < numberOfStates; i++) {
         states.push(buildStateNode(acceptanceStates, i.toString()));
     }
-    // setar transições entre estados
+    // Setar transições entre estados
     for (i = 0; i < numberOfStates; i++) {
         states[i].transitions = buildTransitions(
             transitions.filter(([from]) => from === i.toString()),
@@ -57,22 +60,22 @@ function buildTransitions(arrayOfTransitions, states) {
     for (const transition of arrayOfTransitions) {
         const [_, read, to, write, direction] = transition;
         transitions[read] = {
-            to: states[parseInt(to)], // referencia para o estado de destino
+            to: states[parseInt(to)], // referência para o estado de destino
             write: write,
-            direction: direction,
+            direction: direction, // direção para onde o cabeçote deverá seguir
         };
     }
     return transitions;
 }
 
-// Mover cabeça
+// Mover cabeçote
 function moveHead(head, direction) {
     if (direction === "R") return head + 1;
     if (direction === "L") return head - 1;
     return head;
 }
 
-// Percorrer grafo recurssivamente
+// Percorrer grafo recursivamente
 function traverse(state, strip, head) {
     const symbol = strip[head];
     if (state.transitions[symbol]) {
@@ -86,6 +89,7 @@ function traverse(state, strip, head) {
     return state.isAcceptance;
 }
 
+// Construir Máquina de Turing
 function buildTuringMachine() {
     let numStates;
     let alphabet;
@@ -98,28 +102,34 @@ function buildTuringMachine() {
     const stringsToEvaluate = [];
     let numberOfStringsRead = 0;
 
+    // Lê número de estados
     function readNumStates(data, next) {
         numStates = parseInt(getString(data));
         next();
     }
+    // Lê o conjunto de símbolos terminais 
     function readAlphabetString(data, next) {
         alphabet = getString(data).split(" ");
         alphabet.splice(0, 1);
         next();
     }
+    // Lê o alfabeto estendido da fita
     function readStripAlphabet(data, next) {
         stripAlphabet = getString(data).split(" ");
         stripAlphabet.splice(0, 1);
         next();
     }
+    // Lê os estados de aceitação
     function readAcceptanceState(data, next) {
         acceptanceState = getString(data);
         next();
     }
+    // Lê número de transições
     function readNumberOfTransitions(data, next) {
         numberOfTransitions = parseInt(getString(data));
         next();
     }
+    // Lê a transição
     function readTransition(data, next) {
         transitions.push(getString(data).split(" "));
         numberOfTransitionsRead++;
@@ -127,10 +137,12 @@ function buildTuringMachine() {
             next();
         }
     }
+    // Lê o índice do número de entradas
     function readNumberOfStringsToEvaluate(data, next) {
         numberOfStringsToEvaluate = parseInt(getString(data));
         next();
     }
+    // Lê as entradas
     function readString(data, next) {
         stringsToEvaluate.push(getString(data));
         numberOfStringsRead++;
@@ -140,6 +152,7 @@ function buildTuringMachine() {
         }
     }
 
+    // Avalia se a cadeia é válida ou não 
     function evaluate() {
         const states = buildStates(numStates, acceptanceState, transitions);
 
@@ -150,6 +163,7 @@ function buildTuringMachine() {
         }
     }
 
+    // Registro de listeners para entradas
     registerListeners(
         readNumStates,
         readAlphabetString,
